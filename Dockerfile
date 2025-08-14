@@ -25,4 +25,4 @@ COPY . .
 EXPOSE 8000
 
 # Run the application
-CMD ["python3", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["gunicorn", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--timeout", "3600", "main:app", "--port", "8000"]
