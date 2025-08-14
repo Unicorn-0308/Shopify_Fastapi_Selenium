@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from extract import *
 import os
 
-shopify = ShopifyLogin(headless=False)
+shopify = ShopifyLogin(headless=True)
 cart = ""
 
 #
