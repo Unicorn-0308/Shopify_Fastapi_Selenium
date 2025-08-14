@@ -21,15 +21,17 @@ class ShopifyLogin:
         chrome_options.add_argument("--window-size=1080,760")
         
         # Initialize driver
-        driver_path = ChromeDriverManager().install()
+        # driver_path = ChromeDriverManager().install()
         try:
-            self.driver = webdriver.Chrome(service=driver_path, options=chrome_options)
+            # self.driver = webdriver.Chrome(service=driver_path, options=chrome_options)
+            self.driver = webdriver.Chrome('./applications/chromedriver', options=chrome_options)
         except WebDriverException as e:
             print("Error to install WebDriver\n", str(e))
-            parent_dir = os.path.dirname(driver_path)
-            exe_path = os.path.join(parent_dir, 'chromedriver.exe')
-            service = Service(exe_path)
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        #     print("Error to install WebDriver\n", str(e))
+        #     parent_dir = os.path.dirname(driver_path)
+        #     exe_path = os.path.join(parent_dir, 'chromedriver.exe')
+        #     service = Service(exe_path)
+        #     self.driver = webdriver.Chrome(service=service, options=chrome_options)
         self.wait = WebDriverWait(self.driver, 300)
     
     def login(self, store_url, email, password):
