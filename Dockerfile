@@ -24,7 +24,7 @@ RUN mkdir /app \
         libxfixes3 \
         libxrandr2 \
         xdg-utils \
-        libgdk-pixbuf2.0-0
+        libgdk-pixbuf-2.0-0
 
 WORKDIR /app
 
