@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Add Chrome options for containerized environment
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    # Uncomment if you need to mount local files for development
+    # volumes:
+    #   - .:/app
+    # Security options for Chrome
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp=unconfined
+    shm_size: '2gb'  # Shared memory for Chrome
+    restart: unless-stopped
