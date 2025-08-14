@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile.chromium
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    # Use the chromium-compatible main file
+    command: uvicorn main_chromium:app --host 0.0.0.0 --port 8000 --reload
+    # Uncomment if you need to mount local files for development
+    # volumes:
+    #   - .:/app
+    # Security options for Chromium
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp=unconfined
+    shm_size: '1gb'  # Chromium needs less shared memory than Chrome
+    restart: unless-stopped
