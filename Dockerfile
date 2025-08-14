@@ -30,15 +30,12 @@ WORKDIR /app
 
 EXPOSE 8000
 
-COPY requirements.txt /app/
-COPY applications/google_chrome_86_0_4240_75.deb /app/applications/
-COPY applications/chromedriver /app/applications/
+COPY . /app/
 
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt --upgrade \
     && dpkg -i applications/google_chrome_86_0_4240_75.deb \
     && chmod a+x applications/chromedriver
 
-COPY api/ /app/api/
 
 ENTRYPOINT ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
