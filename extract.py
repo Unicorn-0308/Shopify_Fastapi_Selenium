@@ -13,6 +13,10 @@ import sys
 
 class ShopifyLogin:
     def __init__(self, headless=False):
+        self.headless = headless
+        self.install(headless=headless)
+
+    def install(self, headless=False):
         # Setup Chrome options
         chrome_options = webdriver.ChromeOptions()
         if headless:
@@ -98,6 +102,10 @@ class ShopifyLogin:
         Login to Shopify store
         """
         try:
+            self.close()
+            self.install(self.headless)
+
+
             # Navigate to login page
             login_url = f"{store_url}/account/login"
             print(f"Navigating to: {login_url}")
@@ -246,6 +254,7 @@ class ShopifyLogin:
         """
         Close the browser and cleanup temporary user data directory
         """
+        del self.wait
         self.driver.quit()
         # Cleanup temporary user data directory
         try:
