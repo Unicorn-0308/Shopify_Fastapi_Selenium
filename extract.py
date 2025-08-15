@@ -8,6 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 import time
 import json
 import os
+import tempfile
 
 class ShopifyLogin:
     def __init__(self, headless=False):
@@ -19,6 +20,10 @@ class ShopifyLogin:
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--window-size=1080,760")
+        
+        # Create a unique user data directory to avoid conflicts
+        self.user_data_dir = tempfile.mkdtemp(prefix="chrome_user_data_")
+        chrome_options.add_argument(f"--user-data-dir={self.user_data_dir}")
         
         # Initialize driver
         # driver_path = ChromeDriverManager().install()
@@ -165,9 +170,17 @@ class ShopifyLogin:
     
     def close(self):
         """
-        Close the browser
+        Close the browser and cleanup temporary user data directory
         """
         self.driver.quit()
+        # Cleanup temporary user data directory
+        try:
+            import shutil
+            if hasattr(self, 'user_data_dir') and os.path.exists(self.user_data_dir):
+                shutil.rmtree(self.user_data_dir)
+                print(f"Cleaned up temporary directory: {self.user_data_dir}")
+        except Exception as e:
+            print(f"Warning: Could not cleanup temporary directory: {e}")
 
 # Usage example
 if __name__ == "__main__":
