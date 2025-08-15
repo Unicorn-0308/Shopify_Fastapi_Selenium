@@ -9,34 +9,89 @@ import time
 import json
 import os
 import tempfile
+import sys
 
 class ShopifyLogin:
     def __init__(self, headless=False):
         # Setup Chrome options
         chrome_options = webdriver.ChromeOptions()
         if headless:
-            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--headless=new")  # Use new headless mode
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--window-size=1080,760")
+        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--start-maximized")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option('useAutomationExtension', False)
+        
+        # Better user agent to avoid detection
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         
         # Create a unique user data directory to avoid conflicts
         self.user_data_dir = tempfile.mkdtemp(prefix="chrome_user_data_")
         chrome_options.add_argument(f"--user-data-dir={self.user_data_dir}")
         
-        # Initialize driver
-        # driver_path = ChromeDriverManager().install()
-        try:
-            # self.driver = webdriver.Chrome(service=driver_path, options=chrome_options)
-            self.driver = webdriver.Chrome(options=chrome_options)
-        except WebDriverException as e:
-            print("Error to install WebDriver\n", str(e))
-            # parent_dir = os.path.dirname(driver_path)
-            # exe_path = os.path.join(parent_dir, 'chromedriver.exe')
-            # service = Service(exe_path)
-            # self.driver = webdriver.Chrome(service=service, options=chrome_options)
+        # Initialize driver with better error handling
+        self.driver = None
+        initialization_methods = [
+            ("WebDriver Manager", self._init_with_manager, chrome_options),
+            ("System Chrome", self._init_system_chrome, chrome_options),
+            ("Direct Chrome", self._init_direct_chrome, chrome_options)
+        ]
+        
+        for method_name, method, options in initialization_methods:
+            try:
+                print(f"Trying to initialize Chrome with: {method_name}")
+                self.driver = method(options)
+                if self.driver:
+                    print(f"Successfully initialized Chrome with: {method_name}")
+                    break
+            except Exception as e:
+                print(f"Failed with {method_name}: {str(e)}")
+                continue
+        
+        if not self.driver:
+            raise WebDriverException(
+                "Failed to initialize Chrome WebDriver. Please ensure Chrome and ChromeDriver are installed.\n"
+                "You can install ChromeDriver manually or let webdriver-manager handle it automatically."
+            )
+        
         self.wait = WebDriverWait(self.driver, 180)
+    
+    def _init_with_manager(self, options):
+        """Initialize Chrome using webdriver-manager to auto-download the driver"""
+        try:
+            service = Service(ChromeDriverManager().install())
+            return webdriver.Chrome(service=service, options=options)
+        except Exception as e:
+            print(f"WebDriver Manager error: {e}")
+            raise
+    
+    def _init_system_chrome(self, options):
+        """Try to use Chrome from system PATH"""
+        return webdriver.Chrome(options=options)
+    
+    def _init_direct_chrome(self, options):
+        """Try common Chrome installation paths on Windows"""
+        common_paths = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            os.path.expanduser(r"~\AppData\Local\Google\Chrome\Application\chrome.exe")
+        ]
+        
+        for chrome_path in common_paths:
+            if os.path.exists(chrome_path):
+                options.binary_location = chrome_path
+                # Try to find or download ChromeDriver
+                try:
+                    service = Service(ChromeDriverManager().install())
+                    return webdriver.Chrome(service=service, options=options)
+                except:
+                    return webdriver.Chrome(options=options)
+        
+        raise FileNotFoundError("Chrome not found in common installation paths")
     
     def login(self, store_url, email, password):
         """
@@ -53,8 +108,20 @@ class ShopifyLogin:
             # Strategy 1: Try targeting specific Shopify login fields by ID
             try:
                 print("Trying strategy: Targeting specific Shopify fields by ID")
-
-                self.driver.switch_to.frame("advancedRegForm")
+                
+                # Wait for page to load
+                time.sleep(2)
+                
+                # Try to switch to iframe if it exists
+                iframe_found = False
+                try:
+                    self.driver.switch_to.frame("advancedRegForm")
+                    iframe_found = True
+                    print("Switched to iframe 'advancedRegForm'")
+                except:
+                    print("No iframe found, continuing on main page")
+                
+                # Execute login script
                 self.driver.execute_script("""
                     var emailField = document.querySelectorAll('input[name="email"]')[0];
                     console.log(emailField);
@@ -69,13 +136,14 @@ class ShopifyLogin:
                     document.querySelectorAll('button[style="width: 100%; margin-top: 1em; background-color: rgb(31, 69, 194) !important;"]')[0].click();
                 """, email, password)
 
+                print("Waiting for login to complete")
+
                 self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "cart-count-bubble")))
                 print("\n=== Login Success ===")
                 
             except Exception as e1:
                 print(f"Strategy failed: {str(e1)}")
 
-            time.sleep(10)
             try:
                 old_element = self.driver.find_element(By.CLASS_NAME, "cart-count-bubble")
                 self.wait.until(EC.staleness_of(old_element))
@@ -102,6 +170,8 @@ class ShopifyLogin:
             ]
             
             if any(success_indicators):
+                self.driver.get(f"{store_url}/cart")
+
                 print("Login successful!")
                     
                 return True

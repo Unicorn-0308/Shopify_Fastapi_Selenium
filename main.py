@@ -1,9 +1,19 @@
 import requests
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Response
 from pydantic import BaseModel
-from extract import *
+from extract import ShopifyLogin
 import os
 import json
+import traceback
+
+# Initialize ShopifyLogin with error handling
+shopify = None
+try:
+    shopify = ShopifyLogin(headless=False)
+    print("ShopifyLogin initialized successfully")
+except Exception as e:
+    print(f"Warning: Failed to initialize ShopifyLogin on startup: {str(e)}")
+    print("Will attempt to initialize on first request")
 
 cart = ""
 cookies = {}
@@ -21,7 +31,7 @@ async def root():
 
 @app.get("/updateCookie")
 async def updateCookie():
-    global cart, cookies
+    global cart, cookies, shopify
 
     cookie_str = ""
     for cookie in cookies:
@@ -52,24 +62,45 @@ async def updateCookie():
 
 @app.post("/getCookie")
 async def getCookie(account: Account):
-    global cart, cookies
+    global cart, cookies, shopify
 
-    shopify = ShopifyLogin(headless=True)
+    # Try to initialize ShopifyLogin if not already done
+    if shopify is None:
+        try:
+            shopify = ShopifyLogin(headless=False)
+            print("ShopifyLogin initialized on demand")
+        except Exception as e:
+            error_msg = f"Failed to initialize WebDriver: {str(e)}"
+            print(error_msg)
+            traceback.print_exc()
+            return Response(
+                content=json.dumps({"status": "fail", "msg": error_msg}), 
+                media_type="application/json"
+            )
 
     STORE_URL = "https://www.uhs-hardware.com"  # Replace with actual store URL
 
-    if shopify.login(STORE_URL, account.email, account.password):
-        cookies = shopify.get_cookies()
-        for cookie in cookies:
-            if cookie["name"] == "cart":
-                cart = cookie["value"]
-        shopify.close()
-        del shopify
-        return Response(content=json.dumps({"status": "success", "cookie": cart, "cookies": cookies}), media_type="application/json")
+    try:
+        if shopify.login(STORE_URL, account.email, account.password):
+            cookies = shopify.get_cookies()
+            for cookie in cookies:
+                if cookie["name"] == "cart":
+                    cart = cookie["value"]
 
-    shopify.close()
-    del shopify
-    return Response(content=json.dumps({"status": "fail"}), media_type="application/json")
+            cookie_str = ""
+            for cookie in cookies:
+                cookie_str += f"{cookie['name']}={cookie['value']}; "
+
+            print(cookie_str)
+
+            return Response(content=json.dumps({"status": "success", "cookie": cart, "cookies": cookies}), media_type="application/json")
+        else:
+            return Response(content=json.dumps({"status": "fail", "msg": "Login failed"}), media_type="application/json")
+    except Exception as e:
+        error_msg = f"Login error: {str(e)}"
+        print(error_msg)
+        traceback.print_exc()
+        return Response(content=json.dumps({"status": "fail", "msg": error_msg}), media_type="application/json")
     
 
 
