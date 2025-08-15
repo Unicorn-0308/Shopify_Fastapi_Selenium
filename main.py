@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from extract import *
 import os
 
-shopify = ShopifyLogin(headless=True)
 cart = ""
 
 #
@@ -46,6 +45,8 @@ async def updateCookie():
 async def getCookie(account: Account):
     global cart
 
+    shopify = ShopifyLogin(headless=True)
+
     STORE_URL = "https://www.uhs-hardware.com"  # Replace with actual store URL
 
     if shopify.login(STORE_URL, account.email, account.password):
@@ -53,8 +54,12 @@ async def getCookie(account: Account):
         for cookie in cookies:
             if cookie["name"] == "cart":
                 cart = cookie["value"]
+        shopify.close()
+        del shopify
         return {"status": "success", "cookie": cart}
 
+    shopify.close()
+    del shopify
     return {"status": "fail"}
     
 
