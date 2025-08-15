@@ -185,7 +185,7 @@ class ShopifyLogin:
 # Usage example
 if __name__ == "__main__":
     # Initialize the login class
-    shopify = ShopifyLogin(headless=False)  # Set to True for headless mode
+    shopify = ShopifyLogin(headless=True)  # Set to True for headless mode
     
     # Store credentials
     STORE_URL = "https://www.uhs-hardware.com"  # Replace with actual store URL
