@@ -1,10 +1,12 @@
 import requests
-from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Response
 from pydantic import BaseModel
 from extract import *
 import os
+import json
 
 cart = ""
+cookies = {}
 
 #
 app = FastAPI()
@@ -19,7 +21,11 @@ async def root():
 
 @app.get("/updateCookie")
 async def updateCookie():
-    global cart
+    global cart, cookies
+
+    cookie_str = ""
+    for cookie in cookies:
+        cookie_str += f"{cookie['name']}={cookie['value']}; "
 
     if not cart:
         return {"status": "fail", "msg": "No cookie stored. Plz login first."}
@@ -27,25 +33,28 @@ async def updateCookie():
     url = "https://www.uhs-hardware.com/cart/update.js"
     headers = {
         "X-Requested-With": "XMLHttpRequest",
-        "Cookie": f"cart={cart}; localization=US; cart_currency=USD;"
+        "Cookie": cookie_str
     }
     data = {"note": ""}
 
     try:
         response = requests.post(url, headers=headers, data=data)
 
+        cookies = response.cookies
+
         for cookie in response.cookies:
-            if cookie.name == "cart":
-                cart = cookie.value
-        return {"status": "success", "cookie": cart}
+            cookies[cookie.name] = cookie.value
+
+        return Response(content=json.dumps({"status": "success", "cookie": cart, "cookies": cookies}), media_type="application/json")
+    
     except Exception as e:
-        return {"status": "fail", "msg": str(e)}
+        return Response(content=json.dumps({"status": "fail", "msg": str(e)}), media_type="application/json")
 
 @app.post("/getCookie")
 async def getCookie(account: Account):
-    global cart
+    global cart, cookies
 
-    shopify = ShopifyLogin(headless=True)
+    shopify = ShopifyLogin(headless=False)
 
     STORE_URL = "https://www.uhs-hardware.com"  # Replace with actual store URL
 
@@ -56,11 +65,11 @@ async def getCookie(account: Account):
                 cart = cookie["value"]
         shopify.close()
         del shopify
-        return {"status": "success", "cookie": cart}
+        return Response(content=json.dumps({"status": "success", "cookie": cart, "cookies": cookies}), media_type="application/json")
 
     shopify.close()
     del shopify
-    return {"status": "fail"}
+    return Response(content=json.dumps({"status": "fail"}), media_type="application/json")
     
 
 

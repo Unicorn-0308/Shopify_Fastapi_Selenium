@@ -36,7 +36,7 @@ class ShopifyLogin:
             # exe_path = os.path.join(parent_dir, 'chromedriver.exe')
             # service = Service(exe_path)
             # self.driver = webdriver.Chrome(service=service, options=chrome_options)
-        self.wait = WebDriverWait(self.driver, 300)
+        self.wait = WebDriverWait(self.driver, 180)
     
     def login(self, store_url, email, password):
         """
@@ -75,9 +75,13 @@ class ShopifyLogin:
             except Exception as e1:
                 print(f"Strategy failed: {str(e1)}")
 
-            old_element = self.driver.find_element(By.CLASS_NAME, "cart-count-bubble")
-            self.wait.until(EC.staleness_of(old_element))
-            print("\n=== Reload Starts ===")
+            time.sleep(10)
+            try:
+                old_element = self.driver.find_element(By.CLASS_NAME, "cart-count-bubble")
+                self.wait.until(EC.staleness_of(old_element))
+                print("\n=== Reload Starts ===")
+            except Exception as e2:
+                print(f"\n=== Reload failed ===")
 
             self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, "cart-count-bubble")))
             print("\n=== Reload Success ===")
