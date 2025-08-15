@@ -54,7 +54,7 @@ async def updateCookie():
 async def getCookie(account: Account):
     global cart, cookies
 
-    shopify = ShopifyLogin(headless=False)
+    shopify = ShopifyLogin(headless=True)
 
     STORE_URL = "https://www.uhs-hardware.com"  # Replace with actual store URL
 
