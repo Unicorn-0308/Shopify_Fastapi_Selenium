@@ -24,7 +24,7 @@ class ShopifyLogin:
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-gpu")
-        chrome_options.add_argument("--window-size=1920,1080")
+        chrome_options.add_argument("--window-size=1080,720")
         chrome_options.add_argument("--start-maximized")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -249,6 +249,35 @@ class ShopifyLogin:
             print(f"Path: {cookie['path']}")
             print(f"Secure: {cookie['secure']}")
             print("-" * 50)
+
+    def add_products(self, productUrl, qty):
+        """
+        Add products to the cart
+        """
+        try:
+            # Navigate to the product page
+            if self.driver.current_url != productUrl:
+                print(f"Navigating to product: {productUrl}")
+                self.driver.get(productUrl)
+            else:
+                print(f"Already on product: {self.driver.current_url}")
+                
+            # Execute login script
+            self.driver.execute_script("""
+                var qtyField = document.querySelectorAll('input[name="quantity"][type="number"]')[0];
+                console.log(qtyField);
+                qtyField.value = arguments[0];
+                qtyField.dispatchEvent(new Event('input', { bubbles: true }));
+                qtyField.dispatchEvent(new Event('change', { bubbles: true }));
+            """, qty)
+            # button = self.driver.find_element(By.CSS_SELECTOR, 'button[data-available="false"]')
+            # button.click()
+            print(f"Added {qty} of {productUrl}")
+            return True
+                
+        except Exception as e:
+            print(f"Error adding product: {str(e)}")
+            return False
     
     def close(self):
         """

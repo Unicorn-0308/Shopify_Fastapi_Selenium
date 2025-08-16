@@ -25,6 +25,10 @@ class Account(BaseModel):
     email: str
     password: str
 
+class Product(BaseModel):
+    url: str
+    quantity: int = 1
+
 @app.get("/")
 async def root():
     return {"message": "Hello World. Welcome to FastAPI!"}
@@ -34,7 +38,7 @@ async def updateCookie():
     global cart, cookies, shopify
 
     cookie_str = ""
-    for cookie in cookies:
+    for cookie in shopify.get_cookies():
         cookie_str += f"{cookie['name']}={cookie['value']}; "
 
     if not cart:
@@ -49,8 +53,6 @@ async def updateCookie():
 
     try:
         response = requests.post(url, headers=headers, data=data)
-
-        cookies = response.cookies
 
         for cookie in response.cookies:
             cookies[cookie.name] = cookie.value
@@ -82,13 +84,13 @@ async def getCookie(account: Account):
 
     try:
         if shopify.login(STORE_URL, account.email, account.password):
-            cookies = shopify.get_cookies()
-            for cookie in cookies:
+            for cookie in shopify.get_cookies():
+                cookies[cookie["name"]] = cookie["value"]
                 if cookie["name"] == "cart":
                     cart = cookie["value"]
 
             cookie_str = ""
-            for cookie in cookies:
+            for cookie in shopify.get_cookies():
                 cookie_str += f"{cookie['name']}={cookie['value']}; "
 
             print(cookie_str)
@@ -101,6 +103,51 @@ async def getCookie(account: Account):
         print(error_msg)
         traceback.print_exc()
         return Response(content=json.dumps({"status": "fail", "msg": error_msg}), media_type="application/json")
+
+@app.post("/addProduct")
+async def addProduct(product: Product):
+    global shopify
     
+    # Check if ShopifyLogin is initialized
+    if shopify is None:
+        return Response(
+            content=json.dumps({"status": "fail", "msg": "ShopifyLogin not initialized. Please login first."}),
+            media_type="application/json"
+        )
+    
+    try:
+        # Add product to cart
+        if shopify.add_products(product.url, product.quantity):
+            # Get updated cookies
+            updated_cookies = {}
+            updated_cart = ""
+            for cookie in shopify.get_cookies():
+                updated_cookies[cookie["name"]] = cookie["value"]
+                if cookie["name"] == "cart":
+                    updated_cart = cookie["value"]
+            
+            return Response(
+                content=json.dumps({
+                    "status": "success", 
+                    "msg": f"Product added to cart with quantity {product.quantity}",
+                    "cart": updated_cart,
+                    "cookies": updated_cookies
+                }),
+                media_type="application/json"
+            )
+        else:
+            return Response(
+                content=json.dumps({"status": "fail", "msg": "Failed to add product"}),
+                media_type="application/json"
+            )
+        
+    except Exception as e:
+        error_msg = f"Failed to add product: {str(e)}"
+        print(error_msg)
+        traceback.print_exc()
+        return Response(
+            content=json.dumps({"status": "fail", "msg": error_msg}),
+            media_type="application/json"
+        )
 
 
