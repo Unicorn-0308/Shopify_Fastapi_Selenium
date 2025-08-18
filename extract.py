@@ -271,7 +271,7 @@ class ShopifyLogin:
                 qtyField.dispatchEvent(new Event('change', { bubbles: true }));
             """, qty)
             time.sleep(0.5)
-            button = self.driver.find_element(By.CSS_SELECTOR, 'button[data-available="false"]')
+            button = self.driver.find_element(By.CSS_SELECTOR, 'div.product-form__buttons>button')
             button.click()
             print(f"Added {qty} of {productUrl}")
             return True
