@@ -9,7 +9,7 @@ import traceback
 # Initialize ShopifyLogin with error handling
 shopify = None
 try:
-    shopify = ShopifyLogin(headless=False)
+    shopify = ShopifyLogin(headless=True)
     print("ShopifyLogin initialized successfully")
 except Exception as e:
     print(f"Warning: Failed to initialize ShopifyLogin on startup: {str(e)}")
@@ -69,7 +69,7 @@ async def getCookie(account: Account):
     # Try to initialize ShopifyLogin if not already done
     if shopify is None:
         try:
-            shopify = ShopifyLogin(headless=False)
+            shopify = ShopifyLogin(headless=True)
             print("ShopifyLogin initialized on demand")
         except Exception as e:
             error_msg = f"Failed to initialize WebDriver: {str(e)}"
