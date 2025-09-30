@@ -271,8 +271,18 @@ class ShopifyLogin:
                 qtyField.dispatchEvent(new Event('change', { bubbles: true }));
             """, qty)
             time.sleep(0.5)
-            button = self.driver.find_element(By.CSS_SELECTOR, 'div.product-form__buttons>button')
-            button.click()
+
+            try:
+                button = self.driver.find_element(By.CSS_SELECTOR, 'div.product-form__buttons>button')
+                button.click()
+            except:
+                button = self.driver.find_element(By.ID, "close-cart-drawer")
+                button.click()
+                time.sleep(1)
+                
+                button = self.driver.find_element(By.CSS_SELECTOR, 'div.product-form__buttons>button')
+                button.click()
+
             print(f"Added {qty} of {productUrl}")
             return True
                 
